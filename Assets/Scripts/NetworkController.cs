@@ -6,10 +6,13 @@ using Photon.Realtime;
 
 public class NetworkController : MonoBehaviourPunCallbacks
 {
-    
+    private string namePlayer;
     void Start()
     {
         PhotonNetwork.ConnectUsingSettings();
+        namePlayer = Random.Range(1,2000).ToString();
+        PhotonNetwork.NickName = namePlayer;
+
     }
 
 

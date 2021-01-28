@@ -868,7 +868,7 @@ MonoBehaviour:
   minPlayerToStart: 2
   playerCountDisplay: {fileID: 646449070}
   timerToStartDisplay: {fileID: 1237180867}
-  maxWaitTime: 30
+  maxWaitTime: 7
   maxFullGameWaitTime: 5
 --- !u!114 &1788750422
 MonoBehaviour:

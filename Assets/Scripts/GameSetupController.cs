@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Photon.Pun;
 using Photon.Realtime;
+using TMPro;
 
 public class GameSetupController : MonoBehaviour
 {
@@ -27,6 +28,7 @@ public class GameSetupController : MonoBehaviour
             Debug.Log("Win");
             player.GetComponent<SpriteRenderer>().color = Color.red;
             player.transform.position = points[0].transform.position;
+            player.GetComponentInChildren<TextMeshPro>().text = PhotonNetwork.NickName;
 
         }
         else if (player.GetPhotonView().ViewID >= 2000 & player.GetPhotonView().ViewID <= 3000)
@@ -34,7 +36,10 @@ public class GameSetupController : MonoBehaviour
             Debug.Log("Win1");
             player.GetComponent<SpriteRenderer>().color = Color.green;
             player.transform.position = points[1].transform.position;
-        }  
+            player.GetComponentInChildren<TextMeshPro>().text = PhotonNetwork.NickName;
+            
+        } 
+        
        
 
     }
