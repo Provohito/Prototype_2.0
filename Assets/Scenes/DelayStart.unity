@@ -775,7 +775,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   delayStartBtn: {fileID: 2117864417}
   delayCancelBtn: {fileID: 1210342441}
-  roomSize: 2
+  roomSize: 3
 --- !u!1 &1210342441
 GameObject:
   m_ObjectHideFlags: 0
