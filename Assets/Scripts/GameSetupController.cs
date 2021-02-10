@@ -11,27 +11,37 @@ public class GameSetupController : MonoBehaviourPun
     [SerializeField]
     private GameObject[] points;
     GameObject player;
-
     [SerializeField]
     private Text[] numberChooseTheme;
-
     private PhotonView PV;
-
     int makeChoice;
+    bool makedCh;
 
 
-
+    [Header("Timer characteristics")]
     [SerializeField]
-    Transform Father;
-
+    private int themesSceneIndex;
+    [SerializeField]
+    private float maxFullGameWaitTime;
+    [SerializeField]
+    private Text timerToStartDisplay;
+    private float timerToStartGame;
+    private float fullGameTimer;
+    private bool startingGame;
 
     private void Start()
     {
         PV = GetComponent<PhotonView>();
         //CreatePlayer();
+        fullGameTimer = maxFullGameWaitTime;
+        timerToStartGame = maxFullGameWaitTime;
     }
 
-  
+    private void Update()
+    {
+        WaitingForMorePlayers();
+    }
+
     /*private void CreatePlayer()
     {
         
@@ -91,6 +101,7 @@ public class GameSetupController : MonoBehaviourPun
                 numberChooseTheme[0].text = numberChooseTheme[0].text + "\n" + PhotonNetwork.NickName;
                 PV.RPC("RPC_Function", RpcTarget.AllBuffered, numberChooseTheme[0].text, 1);
                 makeChoice = 1;
+                makedCh = true;
             }
             
 
@@ -112,6 +123,7 @@ public class GameSetupController : MonoBehaviourPun
                 numberChooseTheme[1].text = numberChooseTheme[1].text + "\n" + PhotonNetwork.NickName;
                 PV.RPC("RPC_Function", RpcTarget.AllBuffered, numberChooseTheme[1].text, 2);
                 makeChoice = 2;
+                makedCh = true;
             }
             
         }
@@ -133,6 +145,7 @@ public class GameSetupController : MonoBehaviourPun
                 numberChooseTheme[2].text = numberChooseTheme[2].text + "\n" + PhotonNetwork.NickName;
                 PV.RPC("RPC_Function", RpcTarget.AllBuffered, numberChooseTheme[2].text, 3);
                 makeChoice = 3;
+                makedCh = true;
             }
             
         }
@@ -147,6 +160,7 @@ public class GameSetupController : MonoBehaviourPun
         str = str.Remove(n-1, PhotonNetwork.NickName.Length+1);
         numberChooseTheme[count].text = str;
         makeChoice = 0;
+        makedCh = false;
     }
 
     [PunRPC]
@@ -166,7 +180,52 @@ public class GameSetupController : MonoBehaviourPun
         }
         
     }
-    
 
+    private void WaitingForMorePlayers()
+    {
+        string tempTimer = string.Format("{0:00}", timerToStartGame);
+        timerToStartDisplay.text = tempTimer;
+        if (PhotonNetwork.IsMasterClient)
+            PV.RPC("RPC_SendTimer", RpcTarget.Others, timerToStartGame);
+        timerToStartGame -= Time.deltaTime;
 
+        if (timerToStartGame <= 0f)
+        {
+            PV.RPC("RPC_ControllChoice", RpcTarget.Others, makedCh);
+            Debug.Log("RPC !!! makedCh = " + makedCh + "---" + PV.ViewID);
+            //StartGame();
+        }
+    }
+
+    [PunRPC]
+    private void RPC_SendTimer(float timeIn)
+    {
+        timerToStartGame = timeIn;
+        
+    }
+
+    [PunRPC]
+    private void RPC_ControllChoice(bool madeCh)
+    {
+        
+        
+        Debug.Log("RPC madeCh = " + madeCh + "---" + PV.ViewID);
+        if (madeCh == makedCh & madeCh == true)
+        {
+                StartGame();
+        }
+        else
+        {
+            timerToStartGame = fullGameTimer;
+            return;
+        }
+
+    }
+
+    public void StartGame()
+    {
+        if (!PhotonNetwork.IsMasterClient)
+            return;
+        PhotonNetwork.LoadLevel(themesSceneIndex);
+    }
 }
