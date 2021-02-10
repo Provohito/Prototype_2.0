@@ -185,6 +185,7 @@ public class GameSetupController : MonoBehaviourPun
     {
         string tempTimer = string.Format("{0:00}", timerToStartGame);
         timerToStartDisplay.text = tempTimer;
+        
         if (PhotonNetwork.IsMasterClient)
             PV.RPC("RPC_SendTimer", RpcTarget.Others, timerToStartGame);
         timerToStartGame -= Time.deltaTime;
