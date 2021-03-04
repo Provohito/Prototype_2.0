@@ -25,21 +25,7 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
     [SerializeField]
     private float maxFullGameWaitTime;
     */
-    private void Start()
-    {
-        
-        myphotonViev = GetComponent<PhotonView>();
-        //fullGameTimer = maxFullGameWaitTime;
-        // notFullgameTimer = maxWaitTime;
-        // timerToStartGame = maxWaitTime;
-        if (PhotonNetwork.InRoom)
-        {
-            Debug.Log("In Room ");
-        }
-        PlayerCountUpdate();
-        CreatePlayer();
-        
-    }
+    
 
     bool readyState;
     [SerializeField]
@@ -61,10 +47,27 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
 
     GameObject player;
 
-    private bool readyToStart;
+    private bool readyToStart = false;
 
     private bool readyToCountDown;
 
+    int viewId;
+    GameObject ounPlayer;
+    private void Start()
+    {
+
+        myphotonViev = GetComponent<PhotonView>();
+        //fullGameTimer = maxFullGameWaitTime;
+        // notFullgameTimer = maxWaitTime;
+        // timerToStartGame = maxWaitTime;
+        if (PhotonNetwork.InRoom)
+        {
+            Debug.Log("In Room ");
+        }
+        PlayerCountUpdate();
+        CreatePlayer();
+
+    }
     static int GetPlayerCount()
     {
         if (PhotonNetwork.CurrentRoom != null)
@@ -78,7 +81,6 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
         roomSize = PhotonNetwork.CurrentRoom.MaxPlayers;
         playerCount = GetPlayerCount();
         playerCountDisplay.text = playerCount + ":" + roomSize;
-        Debug.Log(GetPlayerCount());
         if (playerCount == roomSize)
         {
             readyToStart = true;
@@ -94,41 +96,71 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
         }
     }
 
-    void Update()
-    {
-        FindPlayer();
-    }
+    
 
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         PlayerCountUpdate();
 
-        myphotonViev.RPC("RPC_SetPlayer", RpcTarget.All);       
+        myphotonViev.RPC("RPC_SetPlayer", RpcTarget.AllBuffered);
+        myphotonViev.RPC("RPC_FixPlayers", RpcTarget.OthersBuffered, viewId, PhotonNetwork.NickName);
     }
-
+    [PunRPC]
+    void RPC_FixPlayers(int ViewId, string namePlayer)
+    {
+        Debug.Log(ViewId);
+        Debug.Log(namePlayer);
+        Debug.Log("Fix");
+        GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
+        foreach (var item in allPlayers)
+        {
+            if (item.GetComponent<PhotonView>().ViewID == ViewId)
+            {
+                Debug.Log(item.transform.GetChild(0).GetChild(1).name);
+                Debug.Log(item.name);
+                item.transform.GetChild(0).GetChild(1).GetComponent<Text>().text = namePlayer;
+            }  
+        }
+    }
     void CreatePlayer()
     {
-        PhotonNetwork.Instantiate("item", playerDisplayPanel.transform.position, Quaternion.identity).transform.SetParent(playerDisplayPanel.transform);
-        Debug.Log("1");
+        ounPlayer = PhotonNetwork.Instantiate("item", new Vector3(0, 0, 0), Quaternion.identity, 0);
+        ounPlayer.transform.SetParent(playerDisplayPanel.transform);
+        viewId = ounPlayer.GetComponent<PhotonView>().ViewID;
+        GameObject namePlayer = ounPlayer.transform.GetChild(0).GetChild(1).gameObject;
+        namePlayer.GetComponent<Text>().text = PhotonNetwork.NickName;
+        //Debug.Log("1");
     }
 
-   [PunRPC]
+    
+
+    [PunRPC]
    void RPC_SetPlayer()
     {
-        FindPlayer();
-        Debug.Log("2");
-    }
-
-    void FindPlayer()
-    {
-        Debug.Log("3");
-
+        Debug.Log("Set");
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
-        Debug.Log(allPlayers.Length);
         foreach (var item in allPlayers)
         {
             item.transform.SetParent(playerDisplayPanel.transform);
         }
+    }
+
+    public void Ready(Text textBtn)
+    {
+        GameObject completedChoice = ounPlayer.transform.GetChild(0).GetChild(4).gameObject;
+
+        if (readyToStart == false)
+        {
+            textBtn.text = "Готов !";
+            completedChoice.GetComponent<Text>().text = "Готов !";
+        }
+        else
+        {
+            textBtn.text = "Не готов (";
+            completedChoice.GetComponent<Text>().text = "Не готов (";
+        }           
+
+        readyToStart = !readyToStart;
     }
     //[PunRPC]
     /*
@@ -141,13 +173,12 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
             fullGameTimer = timeIn;
         }
     }
-    
-    /*
+    */
    public override void OnPlayerLeftRoom(Player otherPlayer)
    {
        PlayerCountUpdate();
    }
-
+    /*
    private void Update()
    {
        WaitingForMorePlayers();

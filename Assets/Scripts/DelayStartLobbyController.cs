@@ -10,6 +10,11 @@ public class DelayStartLobbyController : MonoBehaviourPunCallbacks
     [SerializeField]
     private GameObject delayStartBtn;
 
+    void Start()
+    {
+        PhotonNetwork.NickName = Random.Range(0,1000).ToString();
+    }
+
     public override void OnConnectedToMaster()
     {
         PhotonNetwork.AutomaticallySyncScene = true;
