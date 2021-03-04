@@ -141,7 +141,8 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
         foreach (var item in allPlayers)
         {
-            item.transform.SetParent(playerDisplayPanel.transform);
+             item.transform.SetParent(playerDisplayPanel.transform);
+            
         }
     }
 
