@@ -5,68 +5,40 @@ using Photon.Realtime;
 using Photon.Pun;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using System;
 
 public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
 {
     private PhotonView myphotonViev;
-    /*
-    [SerializeField]
-    private int multiplayerSceneIndex;
-    [SerializeField]
-    private int menuSceneIndex;
-    [SerializeField]
-    private Text timerToStartDisplay;
-    private bool startingGame;
-    private float timerToStartGame;
-    private float notFullgameTimer;
-    private float fullGameTimer;
-    [SerializeField]
-    private float maxWaitTime;
-    [SerializeField]
-    private float maxFullGameWaitTime;
-    */
-    
 
-    bool readyState;
     [SerializeField]
     GameObject readyBtn;
-    [SerializeField]
-    GameObject cancelBtn;
-
 
     private int playerCount;
     private int roomSize;
 
     [SerializeField]
     private Text playerCountDisplay;
-    [SerializeField]
+
     private int minPlayerToStart;
+    private bool readyToStartCount;
 
     [SerializeField]
     GameObject playerDisplayPanel;
 
-    GameObject player;
-
     private bool readyToStart = false;
-
-    private bool readyToCountDown;
 
     int viewId;
     GameObject ounPlayer;
     private void Start()
     {
-
         myphotonViev = GetComponent<PhotonView>();
-        //fullGameTimer = maxFullGameWaitTime;
-        // notFullgameTimer = maxWaitTime;
-        // timerToStartGame = maxWaitTime;
-        if (PhotonNetwork.InRoom)
-        {
-            Debug.Log("In Room ");
-        }
         PlayerCountUpdate();
         CreatePlayer();
-
+    }
+    private void Update()
+    {
+        WaitingForMorePlayers();
     }
     static int GetPlayerCount()
     {
@@ -80,24 +52,15 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
     {
         roomSize = PhotonNetwork.CurrentRoom.MaxPlayers;
         playerCount = GetPlayerCount();
+        minPlayerToStart = roomSize / 2 + 1;
         playerCountDisplay.text = playerCount + ":" + roomSize;
-        if (playerCount == roomSize)
+        if (playerCount == roomSize || playerCount >= minPlayerToStart)
         {
-            readyToStart = true;
-        }
-        else if (playerCount >= minPlayerToStart)
-        {
-            readyToCountDown = true;
+            readyToStartCount = true;
         }
         else
-        {
-            readyToCountDown = false;
-            readyToStart = false;
-        }
+            readyToStartCount = false;
     }
-
-    
-
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
         PlayerCountUpdate();
@@ -105,21 +68,28 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
         myphotonViev.RPC("RPC_SetPlayer", RpcTarget.AllBuffered);
         myphotonViev.RPC("RPC_FixPlayers", RpcTarget.OthersBuffered, viewId, PhotonNetwork.NickName);
     }
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        PlayerCountUpdate();
+    }
     [PunRPC]
     void RPC_FixPlayers(int ViewId, string namePlayer)
     {
-        Debug.Log(ViewId);
-        Debug.Log(namePlayer);
-        Debug.Log("Fix");
         GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
         foreach (var item in allPlayers)
         {
-            if (item.GetComponent<PhotonView>().ViewID == ViewId)
-            {
-                Debug.Log(item.transform.GetChild(0).GetChild(1).name);
-                Debug.Log(item.name);
+            if (item.GetComponent<PhotonView>().ViewID == ViewId & !myphotonViev.IsMine)
                 item.transform.GetChild(0).GetChild(1).GetComponent<Text>().text = namePlayer;
-            }  
+        }
+    }
+    [PunRPC]
+    void RPC_SetPlayer()
+    {
+        GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
+        foreach (var item in allPlayers)
+        {
+            item.transform.SetParent(playerDisplayPanel.transform);
+
         }
     }
     void CreatePlayer()
@@ -129,22 +99,9 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
         viewId = ounPlayer.GetComponent<PhotonView>().ViewID;
         GameObject namePlayer = ounPlayer.transform.GetChild(0).GetChild(1).gameObject;
         namePlayer.GetComponent<Text>().text = PhotonNetwork.NickName;
-        //Debug.Log("1");
     }
 
-    
 
-    [PunRPC]
-   void RPC_SetPlayer()
-    {
-        Debug.Log("Set");
-        GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
-        foreach (var item in allPlayers)
-        {
-             item.transform.SetParent(playerDisplayPanel.transform);
-            
-        }
-    }
 
     public void Ready(Text textBtn)
     {
@@ -154,89 +111,72 @@ public class DelayWaitingRoomSrc : MonoBehaviourPunCallbacks
         {
             textBtn.text = "Готов !";
             completedChoice.GetComponent<Text>().text = "Готов !";
+            myphotonViev.RPC("RPC_Ready", RpcTarget.OthersBuffered, true, PhotonNetwork.NickName);
         }
         else
         {
             textBtn.text = "Не готов (";
             completedChoice.GetComponent<Text>().text = "Не готов (";
+            myphotonViev.RPC("RPC_Ready", RpcTarget.OthersBuffered, false, PhotonNetwork.NickName);
         }           
 
         readyToStart = !readyToStart;
+
     }
-    //[PunRPC]
-    /*
-    private void RPC_SendTimer(float timeIn)
+    [PunRPC]
+    void RPC_Ready(bool ready, string namePlayer)
     {
-        timerToStartGame = timeIn;
-        notFullgameTimer = timeIn;
-        if (timeIn < fullGameTimer)
+        GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
+        foreach (var item in allPlayers)
         {
-            fullGameTimer = timeIn;
+            if (item.transform.GetChild(0).GetChild(1).GetComponent<Text>().text == namePlayer)
+            {
+
+                if (ready)
+                {
+                    item.transform.GetChild(0).GetChild(4).GetComponent<Text>().text = "Готов !";
+                }
+                else
+                    item.transform.GetChild(0).GetChild(4).GetComponent<Text>().text = "Не готов (";
+            }
         }
+
     }
-    */
-   public override void OnPlayerLeftRoom(Player otherPlayer)
+
+
+
+    private void WaitingForMorePlayers()
    {
-       PlayerCountUpdate();
-   }
-    /*
-   private void Update()
-   {
-       WaitingForMorePlayers();
-   }
-
-   private void WaitingForMorePlayers()
-   {
-       if (playerCount <= 1)
+        int countReadyPlayer = 0;
+        GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("Player");
+        foreach (var item in allPlayers)
+        {
+            if (item.transform.GetChild(0).GetChild(4).GetComponent<Text>().text  == "Готов !")
+            {
+                countReadyPlayer += 1;
+            }
+           
+        }
+        if (readyToStart)
        {
-           ResetTimer();
+            if (countReadyPlayer == playerCount && readyToStartCount == true)
+            {
+                //StartGame();
+                Debug.Log("Победа");
+            }
+             
        }
-
-       if (readyToStart)
-       {
-           fullGameTimer -= Time.deltaTime;
-           timerToStartGame = fullGameTimer;
-       }
-       else if(readyToCountDown)
-       {
-           notFullgameTimer -= Time.deltaTime;
-           timerToStartGame = notFullgameTimer;
-       }
-
-       string tempTimer = string.Format("{0:00}", timerToStartGame);
-       timerToStartDisplay.text = tempTimer;
-
-       if (timerToStartGame <= 0f)
-       {
-           if (startingGame)
-           {
-               return;
-           }
-           StartGame();
-       }
-   }
-
-   private void ResetTimer()
-   {
-       timerToStartGame = maxWaitTime;
-       notFullgameTimer = maxWaitTime;
-       fullGameTimer = maxFullGameWaitTime;
    }
 
    public void StartGame()
    {
-       startingGame = true;
        if (!PhotonNetwork.IsMasterClient)
            return;
        PhotonNetwork.CurrentRoom.IsOpen = false;
-       PhotonNetwork.LoadLevel(multiplayerSceneIndex);
+      // PhotonNetwork.LoadLevel(multiplayerSceneIndex); // Load level
    }
 
-   public void DelayCancel()
-   {
-       PhotonNetwork.LeaveRoom();
-       SceneManager.LoadScene(menuSceneIndex);
-   }
-   */
+   
+   
 
 }
